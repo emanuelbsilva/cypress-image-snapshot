@@ -9,6 +9,9 @@ import fs from 'fs-extra';
 import { diffImageToSnapshot } from 'jest-image-snapshot/src/diff-snapshot';
 import path from 'path';
 import pkgDir from 'pkg-dir';
+import resizePngBuffer from 'resize-png-buffer';
+import { PNG } from 'pngjs';
+import Jimp from 'jimp';
 import { MATCH, RECORD } from './constants';
 
 let snapshotOptions = {};
@@ -96,37 +99,53 @@ export function matchImageSnapshotPlugin({ path: screenshotPath }) {
     fs.copySync(snapshotDotPath, snapshotKebabPath);
   }
 
-  snapshotResult = diffImageToSnapshot({
-    snapshotsDir,
-    diffDir,
-    receivedImageBuffer,
-    snapshotIdentifier,
-    failureThreshold,
-    failureThresholdType,
-    updateSnapshot: updateSnapshots,
-    ...options,
-  });
+  return new Promise(resolve => {
+    const originalSnapshot = PNG.sync.read(fs.readFileSync(snapshotKebabPath));
+    const receivedSnapshot = PNG.sync.read(receivedImageBuffer);
+    if (
+      (originalSnapshot.width !== receivedSnapshot.width ||
+        originalSnapshot.height !== receivedSnapshot.height) &&
+      originalSnapshot.width / originalSnapshot.height ===
+        receivedSnapshot.width / receivedSnapshot.height
+    ) {
+      Jimp.read(receivedImageBuffer).then(image => {
+        image.resize(originalSnapshot.width, originalSnapshot.height);
+        resolve(image.getBufferAsync(Jimp.MIME_PNG));
+      });
+    } else resolve(receivedImageBuffer);
+  }).then(buffer => {
+    snapshotResult = diffImageToSnapshot({
+      snapshotsDir,
+      diffDir,
+      receivedImageBuffer: buffer,
+      snapshotIdentifier,
+      failureThreshold,
+      failureThresholdType,
+      updateSnapshot: updateSnapshots,
+      ...options,
+    });
 
-  const { pass, added, updated, diffOutputPath } = snapshotResult;
+    const { pass, added, updated, diffOutputPath } = snapshotResult;
 
-  if (!pass && !added && !updated) {
-    fs.copySync(diffOutputPath, diffDotPath);
-    fs.removeSync(diffOutputPath);
+    if (!pass && !added && !updated) {
+      fs.copySync(diffOutputPath, diffDotPath);
+      fs.removeSync(diffOutputPath);
+      fs.removeSync(snapshotKebabPath);
+      snapshotResult.diffOutputPath = diffDotPath;
+
+      return {
+        path: diffDotPath,
+      };
+    }
+
+    fs.copySync(snapshotKebabPath, snapshotDotPath);
     fs.removeSync(snapshotKebabPath);
-    snapshotResult.diffOutputPath = diffDotPath;
+    snapshotResult.diffOutputPath = snapshotDotPath;
 
     return {
-      path: diffDotPath,
+      path: snapshotDotPath,
     };
-  }
-
-  fs.copySync(snapshotKebabPath, snapshotDotPath);
-  fs.removeSync(snapshotKebabPath);
-  snapshotResult.diffOutputPath = snapshotDotPath;
-
-  return {
-    path: snapshotDotPath,
-  };
+  });
 }
 
 export function addMatchImageSnapshotPlugin(on, config) {
