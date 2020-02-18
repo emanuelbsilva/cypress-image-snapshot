@@ -1,9 +1,9 @@
 {
-  "name": "cypress-image-snapshot",
-  "version": "3.1.1",
+  "name": "es-cypress-image-snapshot",
+  "version": "3.1.2",
   "description": "Cypress bindings for jest-image-snapshot.",
-  "repository": "https://github.com/palmerhq/cypress-image-snapshot",
-  "author": "Jack Cross <jack@palmer.net>",
+  "repository": "https://github.com/emanuelbsilva/cypress-image-snapshot",
+  "author": "Emanuel Silva <emanuelbsilva@gmail.com>",
   "license": "MIT",
   "files": [
     "*.js"
@@ -16,7 +16,7 @@
     "build": "babel src --out-dir .",
     "test": "jest",
     "lint": "eslint src",
-    "postinstall": "npm run build"
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "chalk": "^2.4.1",

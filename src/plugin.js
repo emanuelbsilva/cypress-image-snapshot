@@ -9,7 +9,6 @@ import fs from 'fs-extra';
 import { diffImageToSnapshot } from 'jest-image-snapshot/src/diff-snapshot';
 import path from 'path';
 import pkgDir from 'pkg-dir';
-import resizePngBuffer from 'resize-png-buffer';
 import { PNG } from 'pngjs';
 import Jimp from 'jimp';
 import { MATCH, RECORD } from './constants';
