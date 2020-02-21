@@ -99,19 +99,25 @@ export function matchImageSnapshotPlugin({ path: screenshotPath }) {
   }
 
   return new Promise(resolve => {
-    const originalSnapshot = PNG.sync.read(fs.readFileSync(snapshotKebabPath));
-    const receivedSnapshot = PNG.sync.read(receivedImageBuffer);
-    if (
-      (originalSnapshot.width !== receivedSnapshot.width ||
-        originalSnapshot.height !== receivedSnapshot.height) &&
-      originalSnapshot.width / originalSnapshot.height ===
-        receivedSnapshot.width / receivedSnapshot.height
-    ) {
-      Jimp.read(receivedImageBuffer).then(image => {
-        image.resize(originalSnapshot.width, originalSnapshot.height);
-        resolve(image.getBufferAsync(Jimp.MIME_PNG));
-      });
-    } else resolve(receivedImageBuffer);
+    try {
+      const originalSnapshot = PNG.sync.read(
+        fs.readFileSync(snapshotKebabPath)
+      );
+      const receivedSnapshot = PNG.sync.read(receivedImageBuffer);
+      if (
+        (originalSnapshot.width !== receivedSnapshot.width ||
+          originalSnapshot.height !== receivedSnapshot.height) &&
+        originalSnapshot.width / originalSnapshot.height ===
+          receivedSnapshot.width / receivedSnapshot.height
+      ) {
+        Jimp.read(receivedImageBuffer).then(image => {
+          image.resize(originalSnapshot.width, originalSnapshot.height);
+          resolve(image.getBufferAsync(Jimp.MIME_PNG));
+        });
+      } else resolve(receivedImageBuffer);
+    } catch (e) {
+      resolve(receivedImageBuffer);
+    }
   }).then(buffer => {
     snapshotResult = diffImageToSnapshot({
       snapshotsDir,
